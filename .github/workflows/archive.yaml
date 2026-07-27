@@ -1,17 +1,31 @@
 name: Create Source Archive
 on:
   workflow_dispatch:
+
 jobs:
   archive:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout specific commit
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          ref: 5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b
-      - name: Create tar.gz
-        run: git archive --format=tar.gz --prefix=webkit/ HEAD -o webkit-source-5488984.tar.gz
+      - name: Fetch and Archive via Raw Git
+        run: |
+          # 1. Initialize a blank git repo
+          git init webkit-temp
+          cd webkit-temp
+          
+          # 2. Add the remote
+          git remote add origin https://github.com/oven-sh/WebKit.git
+          
+          # 3. Fetch ONLY the specific commit with no history (depth 1)
+          # This avoids the actions/checkout API limits that caused "Too many retries"
+          git fetch --depth 1 origin 5488984d20e0dbfe4be2c3ba8fb18eb81a5e0e8b
+          
+          # 4. Checkout the files
+          git checkout FETCH_HEAD
+          
+          # 5. Create the tar.gz archive (excluding the .git directory to save space)
+          cd ..
+          tar -czf webkit-source-5488984.tar.gz -C webkit-temp .
+          
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
